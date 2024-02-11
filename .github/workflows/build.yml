@@ -1,0 +1,36 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Clone aviutl_exedit_sdk
+      run: git clone https://github.com/ePi5131/aviutl_exedit_sdk.git vendor/aviutl_exedit_sdk
+
+    - name: Set up MSVC
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Configure CMake
+      run: cmake -Bbuild -S. -DCMAKE_BUILD_TYPE=Release -A Win32
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: aviutl_plugin_dumper
+        path: build/Release/aviutl_plugin_dumper.exe
