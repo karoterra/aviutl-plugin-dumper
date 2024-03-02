@@ -16,9 +16,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
-
-    - name: Clone aviutl_exedit_sdk
-      run: git clone https://github.com/ePi5131/aviutl_exedit_sdk.git vendor/aviutl_exedit_sdk
+      with:
+        submodules: recursive
 
     - name: Set up MSVC
       uses: microsoft/setup-msbuild@v2
