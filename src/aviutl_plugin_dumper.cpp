@@ -3,8 +3,11 @@
 #include <iostream>
 #include <filesystem>
 #include <format>
+#include <vector>
+#include <string>
 
 #include <aviutl.hpp>
+#include <CLI/CLI.hpp>
 
 #include "Sha256Hasher.hpp"
 
@@ -104,12 +107,16 @@ void dump(const char* path) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
-        return 1;
-    }
+    CLI::App app{"Dump AviUtl plugin info."};
 
-    for (int i = 1; i < argc; i++) {
-        dump(argv[i]);
+    std::vector<std::string> inputs;
+    app.add_option("input", inputs, "plugin file path")
+        ->check(CLI::ExistingFile);
+
+    CLI11_PARSE(app, argc, argv);
+
+    for (const auto& input : inputs) {
+        dump(input.c_str());
     }
 
     return 0;
