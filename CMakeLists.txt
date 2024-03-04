@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.21)
+
 project(aviutl_plugin_dumper)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(CLI11 CONFIG REQUIRED)
 
 add_executable(aviutl_plugin_dumper
     src/aviutl_plugin_dumper.cpp
@@ -12,4 +15,7 @@ add_executable(aviutl_plugin_dumper
 target_include_directories(aviutl_plugin_dumper PRIVATE
     vendor/aviutl_exedit_sdk
 )
-target_link_libraries(aviutl_plugin_dumper bcrypt)
+target_link_libraries(aviutl_plugin_dumper
+    CLI11::CLI11
+    bcrypt
+)
