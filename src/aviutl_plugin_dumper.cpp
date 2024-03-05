@@ -10,6 +10,7 @@
 #include <CLI/CLI.hpp>
 
 #include "Sha256Hasher.hpp"
+#include "version.hpp"
 
 namespace fs = std::filesystem;
 
@@ -112,6 +113,8 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> inputs;
     app.add_option("input", inputs, "plugin file path")
         ->check(CLI::ExistingFile);
+
+    app.set_version_flag("-v,--version", APP_VERSION, "Print version");
 
     CLI11_PARSE(app, argc, argv);
 
