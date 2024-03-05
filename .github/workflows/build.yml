@@ -14,6 +14,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
+    - name: Setup Environment Variable
+      shell: pwsh
+      run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
@@ -23,10 +27,10 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Configure CMake
-      run: cmake -Bbuild -S. -DCMAKE_BUILD_TYPE=Release -A Win32
+      run: cmake --preset default
 
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build build --preset release
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
