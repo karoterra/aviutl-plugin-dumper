@@ -12,6 +12,7 @@ find_package(CLI11 CONFIG REQUIRED)
 add_executable(aviutl_plugin_dumper
     src/aviutl_plugin_dumper.cpp
     src/version.hpp
+    src/plugin_info.hpp
     src/Sha256Hasher.hpp
     src/Sha256Hasher.cpp
 )
