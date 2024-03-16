@@ -2,124 +2,102 @@
 
 #include <iostream>
 #include <filesystem>
-#include <format>
 #include <vector>
+#include <map>
 #include <string>
+#include <algorithm>
+#include <iterator>
 
 #include <aviutl.hpp>
 #include <CLI/CLI.hpp>
+#include <nlohmann/json.hpp>
 
 #include "Sha256Hasher.hpp"
+#include "encoding.hpp"
+#include "plugin_info.hpp"
 #include "version.hpp"
 
 namespace fs = std::filesystem;
+using json = nlohmann::json;
 
-typedef AviUtl::FilterPluginDLL* (__stdcall *GetFilterTable)(void);
-typedef AviUtl::FilterPluginDLL** (__stdcall *GetFilterTableList)(void);
-typedef AviUtl::InputPluginDLL* (__stdcall* GetInputPluginTable)(void);
-typedef AviUtl::InputPluginDLL** (__stdcall* GetInputPluginTableList)(void);
-typedef AviUtl::OutputPluginDLL* (__stdcall* GetOutputPluginTable)(void);
-typedef AviUtl::OutputPluginDLL** (__stdcall* GetOutputPluginTableList)(void);
-typedef AviUtl::ColorPluginDLL* (__stdcall* GetColorPluginTable)(void);
-typedef AviUtl::ColorPluginDLL** (__stdcall* GetColorPluginTableList)(void);
+enum class OutputFormat {
+    Friendly,
+    Json,
+    JsonLines,
+};
 
-const char* Filter = "Filter";
-const char* InputPlugin = "InputPlugin";
-const char* OutputPlugin = "OutputPlugin";
-const char* ColorPlugin = "ColorPlugin";
+void output_friendly(const std::vector<PluginDllInfo>& dllInfos) {
+    std::ranges::for_each(dllInfos, [](const PluginDllInfo& info) {
+        std::cout << "Path: " << info.path.string() << "\n"
+            << "Filename: " << info.path.filename().string() << "\n"
+            << "SHA256: " << info.sha256 << "\n"
+            << "Type: " << toString(info.type) << "\n";
 
-template<typename T>
-void dump_table(const T* tp) {
-    if (!tp) return;
-
-    std::cout << std::format("  - Name: {}\n", (tp->name != nullptr ? tp->name : ""));
-    std::cout << std::format("    Info: {}\n", (tp->information != nullptr ? tp->information : ""));
+        std::ranges::for_each(info.table, [](const PluginTableInfo& t) {
+            std::cout << "  - Name: " << t.name << "\n"
+                << "    Info: " << t.info << "\n";
+        });
+        std::cout << "\n";
+    });
 }
 
-template<typename T, const char*& TYPE>
-void dump_plugin(const char* path) {
-    auto hmod = LoadLibrary(path);
-    if (!hmod) {
-        std::cerr << "Error: LoadLibrary\n";
-        return;
-    }
-
-    auto get_table = (T * (__stdcall*)(void))GetProcAddress(hmod, std::format("Get{}Table", TYPE).c_str());
-    auto get_table_list = (T * *(__stdcall*)(void))GetProcAddress(hmod, std::format("Get{}TableList", TYPE).c_str());
-    if (get_table) {
-        dump_table<T>(get_table());
-    }
-    else if (get_table_list) {
-        auto list = get_table_list();
-        while (*list) {
-            dump_table<T>(*list);
-            list++;
-        }
-    }
-
-    FreeLibrary(hmod);
+void output_json(const std::vector<PluginDllInfo>& dllInfos, int indent) {
+    json j = dllInfos;
+    std::cout << j.dump(indent) << std::endl;
 }
 
-void dump(const char* path) {
-    fs::path p = path;
-    if (fs::is_directory(p)) return;
-
-    std::cout << path << std::endl;
-    std::cout << std::format("  Filename: {}\n", p.filename().string());
-
-    Sha256Hasher sha256;
-    std::cout << std::format("  SHA256: {}\n", sha256.getFileHash(p));
-
-    auto ext = p.extension().string();
-    if (ext == ".auf") {
-        std::cout << "  Type: filter plugin\n";
-
-        dump_plugin<AviUtl::FilterPluginDLL, Filter>(path);
-    }
-    else if (ext == ".aui") {
-        std::cout << "  Type: input plugin\n";
-
-        dump_plugin<AviUtl::InputPluginDLL, InputPlugin>(path);
-    }
-    else if (ext == ".auo") {
-        std::cout << "  Type: output plugin\n";
-        dump_plugin<AviUtl::OutputPluginDLL, OutputPlugin>(path);
-    }
-    else if (ext == ".auc") {
-        std::cout << "  Type: color plugin\n";
-        dump_plugin<AviUtl::ColorPluginDLL, ColorPlugin>(path);
-    }
-    else if (ext == ".aul") {
-        auto hmod = LoadLibrary(path);
-        if (!hmod) {
-            std::cerr << "Error: LoadLibrary\n";
-            return;
-        }
-        char buf[1024];
-        if (LoadString(hmod, 0, buf, 1024)) {
-            std::cout << "  Type: language plugin\n";
-            std::cout << std::format("  - Name: {}\n", buf);
-            LoadString(hmod, 1, buf, 1024);
-            std::cout << std::format("    Info: {}\n", buf);
-        }
-
-        FreeLibrary(hmod);
-    }
+void output_json_lines(const std::vector<PluginDllInfo>& dllInfos) {
+    std::ranges::for_each(dllInfos, [](const PluginDllInfo& info) {
+        json j = info;
+        std::cout << j << std::endl;
+    });
 }
 
 int main(int argc, char* argv[]) {
-    CLI::App app{"Dump AviUtl plugin info."};
+    chcp cp_utf8{CP_UTF8};
+    CLI::App app{ "Dump AviUtl plugin info." };
 
     std::vector<std::string> inputs;
     app.add_option("input", inputs, "plugin file path")
         ->check(CLI::ExistingFile);
 
+    OutputFormat outputFormat{OutputFormat::Friendly};
+    std::map<std::string, OutputFormat> outputFormatMap{
+        {"friendly", OutputFormat::Friendly},
+        {"json", OutputFormat::Json},
+        {"jsonl", OutputFormat::JsonLines},
+    };
+    app.add_option("-f,--format", outputFormat, "Output format")
+        ->transform(CLI::CheckedTransformer(outputFormatMap, CLI::ignore_case), "hoge");
+
+    int indent = 4;
+    app.add_option("--indent", indent, "Indent size (minify with negative number)");
+
     app.set_version_flag("-v,--version", APP_VERSION, "Print version");
 
     CLI11_PARSE(app, argc, argv);
 
-    for (const auto& input : inputs) {
-        dump(input.c_str());
+    Sha256Hasher hasher;
+    PluginDllInfoFactory factory{ hasher };
+    std::vector<PluginDllInfo> dllInfos;
+    std::ranges::transform(
+        inputs,
+        std::back_inserter(dllInfos),
+        [&factory](const std::string& input) {
+            return factory.create(input);
+        }
+    );
+
+    switch (outputFormat) {
+    case OutputFormat::Friendly:
+        output_friendly(dllInfos);
+        break;
+    case OutputFormat::Json:
+        output_json(dllInfos, indent);
+        break;
+    case OutputFormat::JsonLines:
+        output_json_lines(dllInfos);
+        break;
     }
 
     return 0;
