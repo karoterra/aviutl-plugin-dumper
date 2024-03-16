@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(CLI11 CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 add_executable(aviutl_plugin_dumper
     src/aviutl_plugin_dumper.cpp
@@ -23,6 +24,7 @@ target_include_directories(aviutl_plugin_dumper PRIVATE
 )
 target_link_libraries(aviutl_plugin_dumper
     CLI11::CLI11
+    nlohmann_json::nlohmann_json
     bcrypt
 )
 target_compile_definitions(aviutl_plugin_dumper

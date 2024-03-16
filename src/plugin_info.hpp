@@ -10,10 +10,12 @@
 #include <concepts>
 
 #include <aviutl.hpp>
+#include <nlohmann/json.hpp>
 
 #include "Sha256Hasher.hpp"
 
 namespace fs = std::filesystem;
+using json = nlohmann::json;
 
 template<typename T>
 concept AviUtlTablePlugin = requires(T t) {
@@ -58,6 +60,23 @@ struct PluginDllInfo {
     PluginType type;
     std::vector<PluginTableInfo> table;
 };
+
+void to_json(json& j, const PluginTableInfo& p) {
+    j = json{
+        {"name", p.name},
+        {"info", p.info},
+    };
+}
+
+void to_json(json& j, const PluginDllInfo& p) {
+    j = json{
+        {"path", p.path.string()},
+        {"filename", p.path.filename().string()},
+        {"sha256", p.sha256},
+        {"type", toString(p.type)},
+        {"table", p.table},
+    };
+}
 
 class PluginDllInfoFactory {
 public:
