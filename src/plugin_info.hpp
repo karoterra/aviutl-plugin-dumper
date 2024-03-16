@@ -122,7 +122,9 @@ private:
 
         std::string name{ (tp->name) ? (tp->name) : "" };
         std::string info{ (tp->information) ? (tp->information) : "" };
-        table.emplace_back(name, info);
+        auto name_utf8 = convert_encoding(name, 932, CP_UTF8);
+        auto info_utf8 = convert_encoding(info, 932, CP_UTF8);
+        table.emplace_back(name_utf8, info_utf8);
     }
 
     template<AviUtlTablePlugin T>

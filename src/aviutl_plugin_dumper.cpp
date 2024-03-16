@@ -11,6 +11,7 @@
 #include <CLI/CLI.hpp>
 
 #include "Sha256Hasher.hpp"
+#include "encoding.hpp"
 #include "plugin_info.hpp"
 #include "version.hpp"
 
@@ -32,6 +33,7 @@ void printDllInfos(const std::vector<PluginDllInfo>& dllInfos) {
 }
 
 int main(int argc, char* argv[]) {
+    chcp cp_utf8{CP_UTF8};
     CLI::App app{ "Dump AviUtl plugin info." };
 
     std::vector<std::string> inputs;

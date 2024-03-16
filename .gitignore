@@ -1,6 +1,8 @@
 [Bb]uild/
 *.auf
 CMakeUserPresets.json
+.vscode/*
+!.vscode/settings.json
 
 # User-specific files
 *.rsuser
