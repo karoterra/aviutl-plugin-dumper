@@ -35,3 +35,12 @@ target_compile_options(aviutl_plugin_dumper
     PRIVATE
         "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>"
 )
+
+add_custom_target(package
+    COMMAND 7z a publish/${PROJECT_NAME}_v${PROJECT_VERSION}.zip
+        $<TARGET_FILE:aviutl_plugin_dumper>
+        README.md
+        LICENSE
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    DEPENDS aviutl_plugin_dumper
+)
